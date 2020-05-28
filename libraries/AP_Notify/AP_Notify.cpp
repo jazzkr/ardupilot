@@ -18,6 +18,7 @@
 #include "AP_BoardLED.h"
 #include "PixRacerLED.h"
 #include "Buzzer.h"
+#include "Buzzer_PWM.h"
 #include "Display.h"
 #include "ExternalLED.h"
 #include "PCA9685LED_I2C.h"
@@ -300,10 +301,10 @@ void AP_Notify::add_backends(void)
       CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BLUE
     // No noise makers, keep this though to ensure that the final else is safe
 
-  #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BBBMINI || \
-        CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_POCKET
+  #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BBBMINI
     ADD_BACKEND(new Buzzer());
-
+  #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_POCKET
+    ADD_BACKEND(new Buzzer_PWM());
   #else // other linux
     ADD_BACKEND(new AP_ToneAlarm());
   #endif

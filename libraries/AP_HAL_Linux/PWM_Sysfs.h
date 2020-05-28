@@ -86,4 +86,23 @@ private:
     }
 };
 
+class PWM_Sysfs_Pocket : public PWM_Sysfs_Base {
+public:
+    PWM_Sysfs_Pocket(uint8_t chip, uint8_t channel);
+
+private:
+    char *_generate_export_path(uint8_t chip);
+    char *_generate_polarity_path(uint8_t chip, uint8_t channel);
+    char *_generate_enable_path(uint8_t chip, uint8_t channel);
+    char *_generate_duty_path(uint8_t chip, uint8_t channel);
+    char *_generate_period_path(uint8_t chip, uint8_t channel);
+
+    void set_polarity(PWM_Sysfs_Base::Polarity polarity) override { }
+
+    PWM_Sysfs_Base::Polarity get_polarity() override
+    {
+        return PWM_Sysfs::NORMAL;
+    }
+};
+
 }

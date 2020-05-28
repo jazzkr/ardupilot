@@ -28,260 +28,332 @@
 
 static const AP_HAL::HAL &hal = AP_HAL::get_HAL();
 
-namespace Linux {
-
-PWM_Sysfs_Base::PWM_Sysfs_Base(char* export_path, char* polarity_path,
-                          char* enable_path, char* duty_path,
-                          char* period_path, uint8_t channel)
-    : _export_path(export_path)
-    , _polarity_path(polarity_path)
-    , _enable_path(enable_path)
-    , _duty_path(duty_path)
-    , _period_path(period_path)
-    , _channel(channel)
+namespace Linux
 {
-}
 
-PWM_Sysfs_Base::~PWM_Sysfs_Base()
-{
-    ::close(_duty_cycle_fd);
-
-    free(_polarity_path);
-    free(_enable_path);
-    free(_period_path);
-}
-
-void PWM_Sysfs_Base::init()
-{
-    if (_export_path == nullptr || _enable_path == nullptr ||
-        _period_path == nullptr || _duty_path == nullptr) {
-        AP_HAL::panic("PWM_Sysfs: export=%p enable=%p period=%p duty=%p"
-                      " required path is NULL", _export_path, _enable_path,
-                      _period_path, _duty_path);
+    PWM_Sysfs_Base::PWM_Sysfs_Base(char *export_path, char *polarity_path,
+                                   char *enable_path, char *duty_path,
+                                   char *period_path, uint8_t channel)
+        : _export_path(export_path), _polarity_path(polarity_path), _enable_path(enable_path), _duty_path(duty_path), _period_path(period_path), _channel(channel)
+    {
     }
-    /* Not checking the return of write_file since it will fail if
+
+    PWM_Sysfs_Base::~PWM_Sysfs_Base()
+    {
+        ::close(_duty_cycle_fd);
+
+        free(_polarity_path);
+        free(_enable_path);
+        free(_period_path);
+    }
+
+    void PWM_Sysfs_Base::init()
+    {
+        if (_export_path == nullptr || _enable_path == nullptr ||
+            _period_path == nullptr || _duty_path == nullptr)
+        {
+            AP_HAL::panic("PWM_Sysfs: export=%p enable=%p period=%p duty=%p"
+                          " required path is NULL",
+                          _export_path, _enable_path,
+                          _period_path, _duty_path);
+        }
+        /* Not checking the return of write_file since it will fail if
      * the pwm has already been exported
      */
-    Util::from(hal.util)->write_file(_export_path, "%u", _channel);
-    free(_export_path);
+        Util::from(hal.util)->write_file(_export_path, "%u", _channel);
+        free(_export_path);
 
-    _duty_cycle_fd = ::open(_duty_path, O_RDWR | O_CLOEXEC);
-    if (_duty_cycle_fd < 0) {
-        AP_HAL::panic("LinuxPWM_Sysfs:Unable to open file %s: %s",
-                      _duty_path, strerror(errno));
-    }
-    free(_duty_path);
-}
-
-void PWM_Sysfs_Base::enable(bool value)
-{
-    if (Util::from(hal.util)->write_file(_enable_path, "%u", value) < 0) {
-        hal.console->printf("LinuxPWM_Sysfs: %s Unable to %s\n",
-                            _enable_path, value ? "enable" : "disable");
-    }
-}
-
-bool PWM_Sysfs_Base::is_enabled()
-{
-    unsigned int enabled;
-
-    if (Util::from(hal.util)->read_file(_enable_path, "%u", &enabled) < 0) {
-        hal.console->printf("LinuxPWM_Sysfs: %s Unable to get status\n",
-                            _enable_path);
-    }
-    return enabled;
-}
-
-void PWM_Sysfs_Base::set_period(uint32_t nsec_period)
-{
-    set_duty_cycle(0);
-
-    if (Util::from(hal.util)->write_file(_period_path, "%u", nsec_period) < 0) {
-        hal.console->printf("LinuxPWM_Sysfs: %s Unable to set period\n",
-                            _period_path);
-    }
-}
-
-uint32_t PWM_Sysfs_Base::get_period()
-{
-    uint32_t nsec_period;
-
-    if (Util::from(hal.util)->read_file(_period_path, "%u", &nsec_period) < 0) {
-        hal.console->printf("LinuxPWM_Sysfs: %s Unable to get period\n",
-                            _period_path);
-        nsec_period = 0;
-    }
-    return nsec_period;
-}
-
-void PWM_Sysfs_Base::set_freq(uint32_t freq)
-{
-    set_period(hz_to_nsec(freq));
-}
-
-uint32_t PWM_Sysfs_Base::get_freq()
-{
-    return nsec_to_hz(get_period());
-}
-
-bool PWM_Sysfs_Base::set_duty_cycle(uint32_t nsec_duty_cycle)
-{
-    /* Don't log fails since this could spam the console */
-    if (dprintf(_duty_cycle_fd, "%u", nsec_duty_cycle) < 0) {
-        return false;
+        _duty_cycle_fd = ::open(_duty_path, O_RDWR | O_CLOEXEC);
+        if (_duty_cycle_fd < 0)
+        {
+            AP_HAL::panic("LinuxPWM_Sysfs:Unable to open file %s: %s",
+                          _duty_path, strerror(errno));
+        }
+        free(_duty_path);
     }
 
-    _nsec_duty_cycle_value = nsec_duty_cycle;
-    return true;
-}
-
-uint32_t PWM_Sysfs_Base::get_duty_cycle()
-{
-    return _nsec_duty_cycle_value;
-}
-
-void PWM_Sysfs_Base::set_polarity(PWM_Sysfs_Base::Polarity polarity)
-{
-    if (Util::from(hal.util)->write_file(_polarity_path, "%s",
-                                         polarity == NORMAL ?
-                                         "normal" : "inversed") < 0) {
-        hal.console->printf("LinuxPWM_Sysfs: %s Unable to set polarity\n",
-                            _polarity_path);
+    void PWM_Sysfs_Base::enable(bool value)
+    {
+        if (Util::from(hal.util)->write_file(_enable_path, "%u", value) < 0)
+        {
+            hal.console->printf("LinuxPWM_Sysfs: %s Unable to %s\n",
+                                _enable_path, value ? "enable" : "disable");
+        }
     }
-}
 
-PWM_Sysfs_Base::Polarity PWM_Sysfs_Base::get_polarity()
-{
-    char polarity[16];
+    bool PWM_Sysfs_Base::is_enabled()
+    {
+        unsigned int enabled;
 
-    if (Util::from(hal.util)->read_file(_polarity_path, "%s", polarity) < 0) {
-        hal.console->printf("LinuxPWM_Sysfs: %s Unable to get polarity\n",
-                            _polarity_path);
-        return NORMAL;
+        if (Util::from(hal.util)->read_file(_enable_path, "%u", &enabled) < 0)
+        {
+            hal.console->printf("LinuxPWM_Sysfs: %s Unable to get status\n",
+                                _enable_path);
+        }
+        return enabled;
     }
-    return strncmp(polarity, "normal", sizeof(polarity)) ? INVERSE : NORMAL;
-}
 
-/* PWM Sysfs api for mainline kernel */
-char *PWM_Sysfs::_generate_export_path(uint8_t chip)
-{
-    char *path;
-    int r = asprintf(&path, "/sys/class/pwm/pwmchip%u/export", chip);
-    if (r == -1) {
-        AP_HAL::panic("LinuxPWM_Sysfs :"
-                      "couldn't allocate export path\n");
+    void PWM_Sysfs_Base::set_period(uint32_t nsec_period)
+    {
+        set_duty_cycle(0);
+
+        if (Util::from(hal.util)->write_file(_period_path, "%u", nsec_period) < 0)
+        {
+            hal.console->printf("LinuxPWM_Sysfs: %s Unable to set period\n",
+                                _period_path);
+        }
     }
-    return path;
-}
 
-char *PWM_Sysfs::_generate_polarity_path(uint8_t chip, uint8_t channel)
-{
-    char *path;
-    int r = asprintf(&path, "/sys/class/pwm/pwmchip%u/pwm%u/polarity",
-                     chip, channel);
-    if (r == -1) {
-        AP_HAL::panic("LinuxPWM_Sysfs :"
-                      "couldn't allocate polarity path\n");
+    uint32_t PWM_Sysfs_Base::get_period()
+    {
+        uint32_t nsec_period;
+
+        if (Util::from(hal.util)->read_file(_period_path, "%u", &nsec_period) < 0)
+        {
+            hal.console->printf("LinuxPWM_Sysfs: %s Unable to get period\n",
+                                _period_path);
+            nsec_period = 0;
+        }
+        return nsec_period;
     }
-    return path;
-}
 
-char *PWM_Sysfs::_generate_enable_path(uint8_t chip, uint8_t channel)
-{
-    char *path;
-    int r = asprintf(&path, "/sys/class/pwm/pwmchip%u/pwm%u/enable",
-                     chip, channel);
-    if (r == -1) {
-        AP_HAL::panic("LinuxPWM_Sysfs :"
-                      "couldn't allocate enable path\n");
+    void PWM_Sysfs_Base::set_freq(uint32_t freq)
+    {
+        set_period(hz_to_nsec(freq));
     }
-    return path;
-}
 
-char *PWM_Sysfs::_generate_duty_path(uint8_t chip, uint8_t channel)
-{
-    char *path;
-    int r = asprintf(&path, "/sys/class/pwm/pwmchip%u/pwm%u/duty_cycle",
-                     chip, channel);
-    if (r == -1) {
-        AP_HAL::panic("LinuxPWM_Sysfs :"
-                      "couldn't allocate duty path\n");
+    uint32_t PWM_Sysfs_Base::get_freq()
+    {
+        return nsec_to_hz(get_period());
     }
-    return path;
-}
 
-char *PWM_Sysfs::_generate_period_path(uint8_t chip, uint8_t channel)
-{
-    char *path;
-    int r = asprintf(&path, "/sys/class/pwm/pwmchip%u/pwm%u/period",
-                     chip, channel);
-    if (r == -1) {
-        AP_HAL::panic("LinuxPWM_Sysfs :"
-                      "couldn't allocate period path\n");
+    bool PWM_Sysfs_Base::set_duty_cycle(uint32_t nsec_duty_cycle)
+    {
+        /* Don't log fails since this could spam the console */
+        if (dprintf(_duty_cycle_fd, "%u", nsec_duty_cycle) < 0)
+        {
+            return false;
+        }
+
+        _nsec_duty_cycle_value = nsec_duty_cycle;
+        return true;
     }
-    return path;
-}
 
-PWM_Sysfs::PWM_Sysfs(uint8_t chip, uint8_t channel) :
-    PWM_Sysfs_Base(_generate_export_path(chip),
-                   _generate_polarity_path(chip, channel),
-                   _generate_enable_path(chip, channel),
-                   _generate_duty_path(chip, channel),
-                   _generate_period_path(chip, channel),
-                   channel)
-{
-}
-
-/* PWM Sysfs api for bebop kernel */
-char *PWM_Sysfs_Bebop::_generate_export_path()
-{
-    return strdup("/sys/class/pwm/export");
-}
-
-char *PWM_Sysfs_Bebop::_generate_enable_path(uint8_t channel)
-{
-    char *path;
-    int r = asprintf(&path, "/sys/class/pwm/pwm_%u/run",
-                     channel);
-    if (r == -1) {
-        AP_HAL::panic("LinuxPWM_Sysfs :"
-                      "couldn't allocate enable path\n");
+    uint32_t PWM_Sysfs_Base::get_duty_cycle()
+    {
+        return _nsec_duty_cycle_value;
     }
-    return path;
-}
 
-char *PWM_Sysfs_Bebop::_generate_duty_path(uint8_t channel)
-{
-    char *path;
-    int r = asprintf(&path, "/sys/class/pwm/pwm_%u/duty_ns",
-                     channel);
-    if (r == -1) {
-        AP_HAL::panic("LinuxPWM_Sysfs :"
-                      "couldn't allocate duty path\n");
+    void PWM_Sysfs_Base::set_polarity(PWM_Sysfs_Base::Polarity polarity)
+    {
+        if (Util::from(hal.util)->write_file(_polarity_path, "%s",
+                                             polarity == NORMAL ? "normal" : "inversed") < 0)
+        {
+            hal.console->printf("LinuxPWM_Sysfs: %s Unable to set polarity\n",
+                                _polarity_path);
+        }
     }
-    return path;
-}
 
-char *PWM_Sysfs_Bebop::_generate_period_path(uint8_t channel)
-{
-    char *path;
-    int r = asprintf(&path, "/sys/class/pwm/pwm_%u/period_ns",
-                     channel);
-    if (r == -1) {
-        AP_HAL::panic("LinuxPWM_Sysfs :"
-                      "couldn't allocate period path\n");
+    PWM_Sysfs_Base::Polarity PWM_Sysfs_Base::get_polarity()
+    {
+        char polarity[16];
+
+        if (Util::from(hal.util)->read_file(_polarity_path, "%s", polarity) < 0)
+        {
+            hal.console->printf("LinuxPWM_Sysfs: %s Unable to get polarity\n",
+                                _polarity_path);
+            return NORMAL;
+        }
+        return strncmp(polarity, "normal", sizeof(polarity)) ? INVERSE : NORMAL;
     }
-    return path;
-}
 
-PWM_Sysfs_Bebop::PWM_Sysfs_Bebop(uint8_t channel) :
-    PWM_Sysfs_Base(_generate_export_path(),
-                   nullptr,
-                   _generate_enable_path(channel),
-                   _generate_duty_path(channel),
-                   _generate_period_path(channel),
-                   channel)
-{
-}
+    /* PWM Sysfs api for mainline kernel */
+    char *PWM_Sysfs::_generate_export_path(uint8_t chip)
+    {
+        char *path;
+        int r = asprintf(&path, "/sys/class/pwm/pwmchip%u/export", chip);
+        if (r == -1)
+        {
+            AP_HAL::panic("LinuxPWM_Sysfs :"
+                          "couldn't allocate export path\n");
+        }
+        return path;
+    }
 
-}
+    char *PWM_Sysfs::_generate_polarity_path(uint8_t chip, uint8_t channel)
+    {
+        char *path;
+        int r = asprintf(&path, "/sys/class/pwm/pwmchip%u/pwm%u/polarity",
+                         chip, channel);
+        if (r == -1)
+        {
+            AP_HAL::panic("LinuxPWM_Sysfs :"
+                          "couldn't allocate polarity path\n");
+        }
+        return path;
+    }
+
+    char *PWM_Sysfs::_generate_enable_path(uint8_t chip, uint8_t channel)
+    {
+        char *path;
+        int r = asprintf(&path, "/sys/class/pwm/pwmchip%u/pwm%u/enable",
+                         chip, channel);
+        if (r == -1)
+        {
+            AP_HAL::panic("LinuxPWM_Sysfs :"
+                          "couldn't allocate enable path\n");
+        }
+        return path;
+    }
+
+    char *PWM_Sysfs::_generate_duty_path(uint8_t chip, uint8_t channel)
+    {
+        char *path;
+        int r = asprintf(&path, "/sys/class/pwm/pwmchip%u/pwm%u/duty_cycle",
+                         chip, channel);
+        if (r == -1)
+        {
+            AP_HAL::panic("LinuxPWM_Sysfs :"
+                          "couldn't allocate duty path\n");
+        }
+        return path;
+    }
+
+    char *PWM_Sysfs::_generate_period_path(uint8_t chip, uint8_t channel)
+    {
+        char *path;
+        int r = asprintf(&path, "/sys/class/pwm/pwmchip%u/pwm%u/period",
+                         chip, channel);
+        if (r == -1)
+        {
+            AP_HAL::panic("LinuxPWM_Sysfs :"
+                          "couldn't allocate period path\n");
+        }
+        return path;
+    }
+
+    PWM_Sysfs::PWM_Sysfs(uint8_t chip, uint8_t channel) : PWM_Sysfs_Base(_generate_export_path(chip),
+                                                                         _generate_polarity_path(chip, channel),
+                                                                         _generate_enable_path(chip, channel),
+                                                                         _generate_duty_path(chip, channel),
+                                                                         _generate_period_path(chip, channel),
+                                                                         channel)
+    {
+    }
+
+    /* PWM Sysfs api for bebop kernel */
+    char *PWM_Sysfs_Bebop::_generate_export_path()
+    {
+        return strdup("/sys/class/pwm/export");
+    }
+
+    char *PWM_Sysfs_Bebop::_generate_enable_path(uint8_t channel)
+    {
+        char *path;
+        int r = asprintf(&path, "/sys/class/pwm/pwm_%u/run",
+                         channel);
+        if (r == -1)
+        {
+            AP_HAL::panic("LinuxPWM_Sysfs :"
+                          "couldn't allocate enable path\n");
+        }
+        return path;
+    }
+
+    char *PWM_Sysfs_Bebop::_generate_duty_path(uint8_t channel)
+    {
+        char *path;
+        int r = asprintf(&path, "/sys/class/pwm/pwm_%u/duty_ns",
+                         channel);
+        if (r == -1)
+        {
+            AP_HAL::panic("LinuxPWM_Sysfs :"
+                          "couldn't allocate duty path\n");
+        }
+        return path;
+    }
+
+    char *PWM_Sysfs_Bebop::_generate_period_path(uint8_t channel)
+    {
+        char *path;
+        int r = asprintf(&path, "/sys/class/pwm/pwm_%u/period_ns",
+                         channel);
+        if (r == -1)
+        {
+            AP_HAL::panic("LinuxPWM_Sysfs :"
+                          "couldn't allocate period path\n");
+        }
+        return path;
+    }
+
+    PWM_Sysfs_Bebop::PWM_Sysfs_Bebop(uint8_t channel) : PWM_Sysfs_Base(_generate_export_path(),
+                                                                       nullptr,
+                                                                       _generate_enable_path(channel),
+                                                                       _generate_duty_path(channel),
+                                                                       _generate_period_path(channel),
+                                                                       channel)
+    {
+    }
+
+    /* PWM Sysfs api for PocketPilot / MicroDrone kernel */
+    char *PWM_Sysfs_Pocket::_generate_export_path(uint8_t chip)
+    {
+        char *path;
+        int r = asprintf(&path, "/sys/class/pwm/pwmchip%u/export", chip);
+        if (r == -1)
+        {
+            AP_HAL::panic("LinuxPWM_Sysfs :"
+                          "couldn't allocate export path\n");
+        }
+        return path;
+    }
+
+    char *PWM_Sysfs_Pocket::_generate_enable_path(uint8_t chip, uint8_t channel)
+    {
+        char *path;
+        int r = asprintf(&path, "/sys/class/pwm/pwmchip%u/pwm-%u:%u/enable",
+                         chip, chip, channel);
+        if (r == -1)
+        {
+            AP_HAL::panic("LinuxPWM_Sysfs :"
+                          "couldn't allocate enable path\n");
+        }
+        return path;
+    }
+
+    char *PWM_Sysfs_Pocket::_generate_duty_path(uint8_t chip, uint8_t channel)
+    {
+        char *path;
+        int r = asprintf(&path, "/sys/class/pwm/pwmchip%u/pwm-%u:%u/duty_cycle",
+                         chip, chip, channel);
+        if (r == -1)
+        {
+            AP_HAL::panic("LinuxPWM_Sysfs :"
+                          "couldn't allocate duty path\n");
+        }
+        return path;
+    }
+
+    char *PWM_Sysfs_Pocket::_generate_period_path(uint8_t chip, uint8_t channel)
+    {
+        char *path;
+        int r = asprintf(&path, "/sys/class/pwm/pwmchip%u/pwm-%u:%u/period",
+                         chip, chip, channel);
+        if (r == -1)
+        {
+            AP_HAL::panic("LinuxPWM_Sysfs :"
+                          "couldn't allocate period path\n");
+        }
+        return path;
+    }
+
+    PWM_Sysfs_Pocket::PWM_Sysfs_Pocket(uint8_t chip, uint8_t channel) : PWM_Sysfs_Base(_generate_export_path(chip),
+                                                                       nullptr,
+                                                                       _generate_enable_path(chip, channel),
+                                                                       _generate_duty_path(chip, channel),
+                                                                       _generate_period_path(chip, channel),
+                                                                       channel)
+    {
+    }
+
+} // namespace Linux
