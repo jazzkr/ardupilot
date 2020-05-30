@@ -118,16 +118,16 @@ AP_Compass_Backend *AP_Compass_AK09916::probe_ICM20948(AP_HAL::OwnPtr<AP_HAL::I2
         goto fail;
     }
     do {
-        // reset then bring sensor out of sleep mode
-        if (!dev_icm->write_register(REG_ICM_PWR_MGMT_1, 0x80)) {
-            goto fail;
-        }
-        hal.scheduler->delay(10);
+        // // reset then bring sensor out of sleep mode
+        // if (!dev_icm->write_register(REG_ICM_PWR_MGMT_1, 0x80)) {
+        //     goto fail;
+        // }
+        // hal.scheduler->delay(10);
 
-        if (!dev_icm->write_register(REG_ICM_PWR_MGMT_1, 0x00)) {
-            goto fail;
-        }
-        hal.scheduler->delay(10);
+        // if (!dev_icm->write_register(REG_ICM_PWR_MGMT_1, 0x00)) {
+        //     goto fail;
+        // }
+        // hal.scheduler->delay(10);
         
         // see if ICM20948 is sleeping
         if (!dev_icm->read_registers(REG_ICM_PWR_MGMT_1, &rval, 1)) {

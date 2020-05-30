@@ -58,7 +58,7 @@ private:
         uint8_t ekf_bad             : 1;    // 1 if ekf position has gone bad
     } _flags;
 
-    PWM_Sysfs_Base _pwm; // PWM backend
+    Linux::PWM_Sysfs_Base *_pwm; // PWM backend
 
     uint8_t _chip;
     uint8_t _channel;

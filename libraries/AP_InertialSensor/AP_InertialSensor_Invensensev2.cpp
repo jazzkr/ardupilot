@@ -694,6 +694,10 @@ bool AP_InertialSensor_Invensensev2::_hardware_init(void)
         }
     }
 
+    // Make sure we boot up in bypass mode
+    _register_write(INV2REG_INT_PIN_CFG, BIT_BYPASS_EN);
+    hal.scheduler->delay(5);
+
     _dev->set_speed(AP_HAL::Device::SPEED_HIGH);
 
     if (tries == 5) {
