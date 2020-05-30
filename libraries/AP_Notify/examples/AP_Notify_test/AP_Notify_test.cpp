@@ -22,6 +22,8 @@ void setup()
     // initialise the board leds
     board_led.init();
 
+    hal.console->printf("Finished LED init\n");
+
     // turn on initialising notification
     AP_Notify::flags.initialising = true;
     AP_Notify::flags.gps_status = 1;
