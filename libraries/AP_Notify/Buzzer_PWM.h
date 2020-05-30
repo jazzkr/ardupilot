@@ -20,6 +20,7 @@
 #include <AP_HAL/AP_HAL.h>
 
 #include "NotifyDevice.h"
+#include <AP_HAL_Linux/PWM_Sysfs.h>
 
 class Buzzer_PWM: public NotifyDevice
 {

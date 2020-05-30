@@ -38,19 +38,19 @@ bool Buzzer_PWM::init()
 #if !defined(HAL_BUZZER_PWM_CHIP) || !defined(HAL_BUZZER_PWM_CHANNEL) || !defined(HAL_BUZZER_PWM_FREQ_HZ)
     return false;
 #else
-    _chip = HAL_BUZZER_PWM_CHIP
-    _channel = HAL_BUZZER_PWM_CHANNEL
-    _freq_hz = HAL_BUZZER_PWM_FREQ_HZ
+    _chip = HAL_BUZZER_PWM_CHIP;
+    _channel = HAL_BUZZER_PWM_CHANNEL;
+    _freq_hz = HAL_BUZZER_PWM_FREQ_HZ;
 #endif
 
     _pwm = NULL;
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_POCKET
-    _pwm = new PWM_Sysfs_Pocket(_chip, _channel);
+    _pwm = new Linux::PWM_Sysfs_Pocket(_chip, _channel);
 #endif
     if (_pwm == NULL) return false;
 
-    _pwm.set_freq(_freq_hz);
-    _pwm.set_duty_cycle(hz_to_nsec(_freq_hz)/2);
+    _pwm->set_freq(_freq_hz);
+    _pwm->set_duty_cycle(hz_to_nsec(_freq_hz)/2);
     // ensure it's off
     on(false);
 
@@ -149,7 +149,7 @@ void Buzzer_PWM::on(bool turn_on)
     _flags.on = turn_on;
 
     // enable or disable tone
-    _pwm.enable(_flags.on? HAL_BUZZER_ON : HAL_BUZZER_OFF);
+    _pwm->enable(_flags.on? HAL_BUZZER_ON : HAL_BUZZER_OFF);
 }
 
 /// play_pattern - plays the defined buzzer pattern
