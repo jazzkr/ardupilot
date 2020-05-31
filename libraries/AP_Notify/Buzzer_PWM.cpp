@@ -32,10 +32,13 @@ extern const AP_HAL::HAL& hal;
 
 bool Buzzer_PWM::init()
 {
+    hal.console->printf("Init Buzzer PWM\n");
     if (pNotify->buzzer_enabled() == false) {
+        hal.console->printf("Buzzer not enabled!\n");
         return false;
     }
 #if !defined(HAL_BUZZER_PWM_CHIP) || !defined(HAL_BUZZER_PWM_CHANNEL) || !defined(HAL_BUZZER_PWM_FREQ_HZ)
+    hal.console->printf("Buzzer PWM defines missing!\n");
     return false;
 #else
     _chip = HAL_BUZZER_PWM_CHIP;
@@ -47,7 +50,10 @@ bool Buzzer_PWM::init()
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_POCKET
     _pwm = new Linux::PWM_Sysfs_Pocket(_chip, _channel);
 #endif
-    if (_pwm == NULL) return false;
+    if (_pwm == NULL) {
+        hal.console->printf("Buzzer PWM_Sysfs_Pocket=null!\n");
+        return false;
+    } 
 
     _pwm->set_freq(_freq_hz);
     _pwm->set_duty_cycle(hz_to_nsec(_freq_hz)/2);
